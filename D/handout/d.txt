@@ -1,0 +1,57 @@
+任务描述
+本题是一个经典的单源最短路 (Single Source Shortest Path, SSSP) 问题。给定一个包含 n 个节点和m 条边的有向图 
+G=(V,E)，边的权重 w≥0。你需要计算从源点 s=0 到图中所有其他节点 v∈V 的最短路径长度。
+你可以使用任何算法来解决这个问题，只要最终结果正确即可。
+
+输入输出
+本题中输入输出函数main.cpp已经为你实现，它会调用sssp.cpp中的calculate函数，函数原型如下。
+不过我们仍然在此处说明输入输出格式以便参考。你可以在handout目录下找到main.cpp的实现。
+
+void calculate(uint32_t n, uint32_t m, uint32_t *edges, uint64_t *dis)
+输入
+程序接受三个参数，n、m和seed，分别表示节点数、边数和随机数种子。程序会根据这些参数生成一个有向图。
+
+输出
+程序输出一个二进制文件，文件名是dis.bin，其中包括 
+n 个 64 位无符号整数，第 i 个整数表示从源点 0 到节点 i 的最短路径长度。如果节点不可达，输出 1e18。
+保证输出不会溢出uint64_t的范围。
+
+运行环境、编译与测试
+本题将在Intel Xeon Platinum 8358 CPU 的 16 核心环境下运行。
+所以程序必须做到并行!
+
+评测容器镜像：cr.hpc.lcpu.dev/hpcgame/base:latest，基础发行版为Rocky Linux 10.1。编译命令如下。
+我们在handout里提供了一个Makefile，你也可以直接使用下面的命令编译：
+
+g++ -O3 -std=c++20 -flto -march=native -fopenmp -pthread -o sssp main.cpp sssp.cpp
+我们会这样运行：
+
+export OMP_NUM_THREADS=16
+export OMP_PLACES=cores
+export OMP_PROC_BIND=close
+./sssp n m seed
+评测
+所有结果必须正确，否则不得分。
+
+数据可能存在重边和自环。数据保证所有点可达。
+
+对于所有测试点，边长随机分布在 
+[1,10^7 ]。所有图都是随机图，dis已初始化，具体详见main.cpp。
+
+每个测试点得到正确结果获得基本分数，性能分数与运行时间倒数成正比。
+
+final_score = correct ? base_score + perf_score * min(goal / time, 1) : 0
+
+n	m	base score	perf score	limit	goal
+1e5	2e5	10	        10	        0.03 s	0.005 s
+1e5	1e7	5	        15	        1 s	    0.06s
+1e6	2e8	5	        5	        20 s	1.2s
+1e6	1e9	5	        5	        100 s	5.5s
+1e7	1e7	0	        10	        2 s	    0.2s
+1e7	2e7	0	        15	        5 s	    0.35s
+1e7	1e8	0	        15	        17 s	1.4s
+
+
+最基础的实现在sssp0.cpp
+
+把答案写到sssp.cpp里面

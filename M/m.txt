@@ -1,0 +1,59 @@
+题目
+基于 MPI MapReduce 的稀疏矩阵乘法，用于计算 top-K 二跳可达性分数。
+输入为 A（M x K）和 B（K x N）两个矩阵的 COO 分片，程序先按共享键 k 做一轮 shuffle 并完成外积累加，
+再按行 i 做第二轮 shuffle 合并结果，最后为每个源行输出得分最高的 K 个目标。
+
+参赛者只需修改 src/spgemm_topk.cpp 中的 spgemm_topk 函数，I/O 和评测框架不要动。
+
+构建
+mkdir -p build && cd build
+cmake ..
+make -j
+依赖：CMake >= 3.14，MPI 工具链（OpenMPI 或 MPICH 均可）。
+
+生成样例数据
+python3 scripts/gen_coo.py --M 8 --K 6 --N 8 --densityA 0.2 --densityB 0.2 --parts 2 --seed 7 --out data
+会在 data/A/part-00000.. 和 data/B/part-00000.. 下写入 COO 格式文件，每行一条 row col value。
+
+运行
+mpirun -np 4 ./mr_spgemm_topk --A data/A --B data/B --topk 3 --out out.txt
+--A、--B：单个 COO 文件，或包含 part-* 文件的目录。
+--topk：每行保留几个目标。
+--out：输出文件，不指定则打印到 stdout。
+输出格式：
+
+i j1:score1 j2:score2 ...
+输入输出
+输入
+两份稀疏矩阵数据 A: 维度M×K COO:(i,k,val) 
+B: 维度 K×N COO: (k,j,val) 数据以多文件分片形式提供，便于 MapReduce/并行读取：
+
+data/A/part-00000
+data/A/part-00001
+...
+data/B/part-00000
+data/B/part-00001
+...
+每行格式：
+
+row(int) col(int) value(fp32)
+输出
+要求输出每个 
+i(0..M−1) 对应的Top−K 目的端 j，按分数降序：
+
+i  j1:score1  j2:score2  ...  jK:scoreK
+说明
+分两趟 shuffle 是为了避免行被拆散：第一趟按 k 分发做乘加，第二趟按 i 归并到同一个 rank 再取 top-K。
+累加用 double 精度，输入也按 double 解析。
+评测
+环境：cr.hpc.lcpu.dev/hpcgame/mpi:latest
+程序会被运行在三个节点intel 8358上，每个16进程、50G内存。
+
+测试点与评分标准
+Case	形状 M×K×N	density A/B	parts	nnz A	nnz B	TopK	分值	TRef
+1 baseline	30K³	0.01 / 0.01	48	~1M	~1M	32	10	23
+2 medium	50K³	0.005 / 0.005	48	~12.5M	~12.5M	32	15	29
+3 large	100K³	0.0025 / 0.0025	240	~25M	~25M	32	15	62
+4 dense	10K³	0.1 / 0.1	48	~10M	~10M	32	20	44
+5 tall×wide	200K×50K×200K	0.002 / 0.002	240	~20M	~20M	32	20	75
+6 skinny-inner	500K×10K×500K	0.0032 / 0.0032	240	~16M	~16M	32	20	300

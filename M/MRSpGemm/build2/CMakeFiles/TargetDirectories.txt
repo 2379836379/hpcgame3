@@ -1,0 +1,3 @@
+/home/ubuntu/hpcgame/hpcgame3/M/MRSpGemm/build2/CMakeFiles/mr_spgemm_topk.dir
+/home/ubuntu/hpcgame/hpcgame3/M/MRSpGemm/build2/CMakeFiles/edit_cache.dir
+/home/ubuntu/hpcgame/hpcgame3/M/MRSpGemm/build2/CMakeFiles/rebuild_cache.dir

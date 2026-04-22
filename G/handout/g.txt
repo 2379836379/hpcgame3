@@ -1,0 +1,65 @@
+任务描述
+在本题中，你需要使用一张显存为 48GB 的 AMD W7800 GPU 运行 BF16 精度的 Qwen3-32B 模型，
+求一组输入序列的loss。Qwen3-32B的模型参数大小约为 64GB，同时还需要额外的显存放 KVCache 和激活值等数据，
+因此显存远远不够，需要将模型参数卸载到 CPU 内存中，按需加载到 GPU 显存中进行计算。
+
+我们要求使用完整的 BF16 精度的模型进行计算，不允许使用量化、剪枝等技术。
+
+handout中有两个文件，prefill.py和interact.py。你需要修改prefill.py，我们会使用interact.py来调用你的prefill.py，
+通过标准输入，以json数组字符串形式传入输入文本，期望获取loss结果。
+
+interact.py会等待prefill.py输出ready后，输入文本并开始计时，因此加载模型和预处理的时间不计入评分。
+
+interact.py调用prefill.py的命令行参数如下：
+
+python3 prefill.py --model_path <模型路径>
+<模型路径>是模型文件所在的目录，目录下包含了模型的config.json、safetensors权重、tokenizer等文件。
+模型是从https://huggingface.co/Qwen/Qwen3-32B下载的。
+
+评测环境
+评测容器镜像：cr.hpc.lcpu.dev/hpcgame/rocm-prefill:latest，基础发行版为Rocky Linux 10.1，
+软件列表如下。进入容器后，你可以使用source /prefill-handout/.venv/bin/activate激活Python虚拟环境。
+注意，构建镜像用的handout.tar.gz是旧版，请使用平台附件的新版handout。
+
+flash_attn-2.8.3：基于上游flash_attn编译，通过设置环境变量FLASH_ATTENTION_TRITON_AMD_ENABLE=TRUE启用。
+uv （以下依赖都是通过uv安装的）
+AMD ROCm 7.1
+Python 3.13
+Pytorch 2.10.0
+Transformers 4.57.6
+如何做题
+容器里已经有了基本的uv环境，很多包不需要重复安装
+在容器中，只保留/prefill-handout中的.venv目录，删除其他文件，然后将平台附件中的handout解压到文件夹下
+在/prefill-handout目录下运行uv sync，同步环境
+修改prefill.py，实现按需加载模型参数到GPU进行计算
+权重和数据是以PVC的形式提供。使用hpcgame cli时，可以通过-v problem-prefill-data挂载。
+默认会被挂载到/mnt/problem-prefill-data目录下，
+模型和数据分别在该目录下的models/Qwen3-32B和datasets/NuminaMath-CoT目录中。
+
+输入输出格式
+输入和交互格式
+程序可以用一定的时间进行预处理，该部分用时不影响评分。程序准备好后需要输出一行ready到标准输出，表示可以接受输入并开始计时。
+
+从标准输入读取一行包含了所有输入的文本的json数组字符串。
+
+输出格式
+按照输入文本数组顺序，输出对应的loss值，每个loss占一行。
+
+评分方法
+输出的 loss 结果与参考实现的误差需要通过BFloat16精度的数值比较，要求相对误差不超过 5%，或者在数值接近0时，
+允许绝对误差不超过 1e-2，伪代码：
+
+def is_close(a: bfloat16, b: bfloat16) -> bool:
+    if abs(b) > 1e-3:
+        return abs(a - b) / abs(b) <= 0.05
+    else:
+        return abs(a - b) <= 1e-2
+记程序的运行时间（从输出ready到输出 loss 结果）为 T。满分时间75s，超时时间130秒。
+
+
+提示
+Pytorch提供了cuda stream 和 event 相关的API，建议阅读以下Pytorch文档：
+
+https://docs.pytorch.org/docs/stable/cuda.html
+https://docs.pytorch.org/docs/stable/notes/cuda.html#asynchronous-execution
+https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module.register_forward_hook

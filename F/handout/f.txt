@@ -1,0 +1,39 @@
+任务描述
+你的任务是编写 solver.c，实现基于分块策略的 LU 分解算法，并用 OpenMP 做多线程并行加速。
+
+具体要求：
+
+分块算法：把大矩阵拆成小块，利用 Cache 局部性提高效率。
+并行化：用 OpenMP 充分利用多核。
+尽量写对编译器友好的代码。
+1. 接口规范
+数据交互用二进制文件。你不需要写 main 函数，只需要实现核心求解逻辑。
+
+Driver 程序：我们提供了 driver.c，负责读数据、计时、调你的函数、写结果。不要改 driver.c。
+Solver 接口：你要在 solver.c 里实现：
+// n: 矩阵大小（最大 32768
+// A: 系数矩阵 (n*n)，行优先存储
+// b: 常数向量 (n)
+// 任务：解 Ax=b，把解存到 b 里。
+// 注意：可以（也应该）直接在 A 上做 LU 分解，破坏原内容没关系。
+void my_solver(int n, double *A, double *b);
+
+硬件：纯 CPU 题，评测机是 Intel(R) Xeon(R) Platinum 8358 CPU @ 2.60GHz。
+线程数：评测时 OMP_NUM_THREADS 设为 32（物理核心数），并绑定核心。
+
+合法性：
+用下发的 Makefile 测试，不能用外部数学库（OpenBLAS、MKL、LAPACK、Eigen 等的线性代数函数
+如 dgetrf、dgemm 都不行）。自己写。
+允许用 C/C++ 标准库（math.h、stdlib.h 等）和 OpenMP。
+测试点	矩阵规模 
+N
+N	满分成绩	时间限制	分值
+1	2049	0.1s	0.5s	10
+2	4096	0.8s	3s	20
+3	8192	5.3s	10s	20
+4	16384	36.5s	75s	20
+5	32768	268s	500s	30
+
+程序的原始版本在solver0.cpp ，禁止修改
+
+把答案写到solver.cpp里面

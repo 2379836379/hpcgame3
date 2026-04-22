@@ -1,0 +1,38 @@
+VXM 单元每周期可以处理 128 个 float32 元素的计算任务，也即，消耗的周期为输入的数据块中的数据个数 /128。
+MXM 单元每周期可以处理 2048 个 float32 元素的矩阵乘法计算任务，但需要把计算块的各个维度大小 pad 至 128的倍数
+（也即，如果输入的 a 的形状为 [M, K]，b 的形状为 [K, N]，那么消耗的周期即为 
+⌈pad(M,128)pad⁡(N,128)pad⁡(K,16)/2048⌉，也就是说，MXM 单元会把 M, N, K 三个维度分别 pad 到 128, 128, 16 的倍数）。
+若消耗的周期不是整数，则向上取整。
+
+
+任务 4：Flash Attention 算法
+Attention 算法是现代 Transformer 网络的核心模块，
+其接受三个矩阵 Q（大小 [S_qo, D]），K（大小 [S_kv, D]），V（大小 [S_kv, D]），并输出矩阵 O（大小 [S_qo, D]）：
+O=softmax(QK^T,dim=−1)V
+备注：这里我们为了简单，省略了多头注意力、causal mask、softmax scale 等细节。
+正常来说，由于 softmax 操作需要知道所有被 softmax 的数字的大小，我们需要先调用一个矩阵乘法算子，计算出QK^T
+的值，将其存储到显存上，统计每一行的 softmax 分母，进行 softmax 操作，然后再调用另一个矩阵乘法算子，
+计算 softmax 的输出（下文称为“Attention score”）与 V 的矩阵乘法。
+
+但是，这样有两个大问题：一是 Attention score 的大小是 [S_qo, S_kv] 的，如果训练的上下文较长，
+那么显存上很有可能存不下；二是这样反复读写 Attention score 会带来极高的额外内存访存开销，大幅拖慢整体的执行速度。
+为此，Tri Dao 实验室提出了著名的 Flash Attention 算法，其使用了 online softmax 技巧，
+打破了 softmax 带来的全局依赖，让 Attention score 不再需要落盘至显存，从而解决了上述两个问题。
+Flash Attention 一共有三个版本：v1, v2 和 v3。其中，v1 的论文提出了最原始的 Flash Attention 算法，
+但对应的 CUDA 实现较为粗糙，性能不佳；v2 则是在 v1 的基础上加以改进，提高运行效率；
+v3 则是根据 NVIDIA 的 Hopper 架构进行了特殊优化，并添加了对低精度（八位浮点小数）的支持。下面是三篇论文的链接：
+v1: https://arxiv.org/abs/2205.14135
+v2: https://arxiv.org/abs/2307.08691
+v3: https://arxiv.org/abs/2407.08608
+你的任务便是使用 KDT-DSL 复现上述 Flash Attention 算法，并优化性能。
+
+KDT-TPU 的 SM 数量为 8，每个 SM 的 SPM 大小为 640 KB，
+Lmem=1000
+
+测试点编号	S_qo, S_kv, D	执行周期阈值 T
+1   (1024,128,128)	8000
+2	(1024,2048,128)	36408
+3	(1024,4096,128)	71234
+4	(2048,4096,128)	142469
+注：由于 KDT-DSL 的前端没实现接受 math.e 这种 Attribute 作为参数的功能，
+因此请直接使用 2.7182818284590451 而不是 math.e 作为 exp 的参数

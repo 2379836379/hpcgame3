@@ -1,0 +1,14 @@
+[
+{
+  "directory": "/home/ubuntu/hpcgame/hpcgame3/M/MRSpGemm/build",
+  "command": "/usr/bin/mpicxx   -std=c++17 -O3 -march=native -Wall -Wextra -Wpedantic -o CMakeFiles/mr_spgemm_topk.dir/src/main.cpp.o -c /home/ubuntu/hpcgame/hpcgame3/M/MRSpGemm/src/main.cpp",
+  "file": "/home/ubuntu/hpcgame/hpcgame3/M/MRSpGemm/src/main.cpp",
+  "output": "CMakeFiles/mr_spgemm_topk.dir/src/main.cpp.o"
+},
+{
+  "directory": "/home/ubuntu/hpcgame/hpcgame3/M/MRSpGemm/build",
+  "command": "/usr/bin/mpicxx   -std=c++17 -O3 -march=native -Wall -Wextra -Wpedantic -o CMakeFiles/mr_spgemm_topk.dir/src/spgemm_topk.cpp.o -c /home/ubuntu/hpcgame/hpcgame3/M/MRSpGemm/src/spgemm_topk.cpp",
+  "file": "/home/ubuntu/hpcgame/hpcgame3/M/MRSpGemm/src/spgemm_topk.cpp",
+  "output": "CMakeFiles/mr_spgemm_topk.dir/src/spgemm_topk.cpp.o"
+}
+]
